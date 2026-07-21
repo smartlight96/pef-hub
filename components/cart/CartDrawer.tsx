@@ -15,7 +15,11 @@ import {
   Truck,
   ShieldCheck,
   Sparkles,
-  Utensils
+  Utensils,
+  AlertCircle,
+  CheckSquare,
+  Square,
+  Trash2 as TrashIcon
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/lib/currency';
@@ -32,10 +36,13 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     totalItems, 
     increaseQuantity,
     decreaseQuantity,
-    removeFromCart
+    removeFromCart,
+    clearCart
   } = useCart();
   
   const [isVisible, setIsVisible] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<number[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +51,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     } else {
       setIsVisible(false);
       document.body.style.overflow = 'unset';
+      setSelectedItems([]); // Clear selection when closing
     }
     return () => {
       document.body.style.overflow = 'unset';
@@ -54,6 +62,63 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     setIsVisible(false);
     setTimeout(onClose, 300);
   };
+
+  const handleClearCart = () => {
+    if (cart.length === 0) return;
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearCart = () => {
+    clearCart();
+    setShowClearConfirm(false);
+    setSelectedItems([]);
+  };
+
+  // Toggle selection for a single item
+  const toggleItemSelection = (itemId: number) => {
+    setSelectedItems(prev =>
+      prev.includes(itemId)
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  // Select all items
+  const selectAllItems = () => {
+    if (selectedItems.length === cart.length) {
+      setSelectedItems([]);
+    } else {
+      setSelectedItems(cart.map(item => item.id));
+    }
+  };
+
+  // Delete selected items
+  const deleteSelectedItems = () => {
+    if (selectedItems.length === 0) return;
+    
+    // Show confirmation for multiple items
+    if (selectedItems.length > 1) {
+      if (confirm(`Remove ${selectedItems.length} items from cart?`)) {
+        selectedItems.forEach(id => removeFromCart(id));
+        setSelectedItems([]);
+      }
+    } else {
+      // For single item, just remove it
+      selectedItems.forEach(id => removeFromCart(id));
+      setSelectedItems([]);
+    }
+  };
+
+  // Calculate selected total
+  const getSelectedTotal = () => {
+    return cart
+      .filter(item => selectedItems.includes(item.id))
+      .reduce((total, item) => total + (item.price * item.quantity), 0);
+  };
+
+  const isAllSelected = cart.length > 0 && selectedItems.length === cart.length;
+  const selectedCount = selectedItems.length;
+  const selectedTotal = getSelectedTotal();
 
   if (!isOpen && !isVisible) return null;
 
@@ -89,13 +154,56 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </p>
             </div>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors duration-200"
-            aria-label="Close cart"
-          >
-            <X className="w-4 h-4 text-zinc-400 hover:text-white transition-colors" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            {/* Select All Button */}
+            {cart.length > 0 && (
+              <button
+                onClick={selectAllItems}
+                className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors duration-200 text-zinc-400 hover:text-white"
+                aria-label={isAllSelected ? "Deselect all" : "Select all"}
+                title={isAllSelected ? "Deselect all" : "Select all"}
+              >
+                {isAllSelected ? (
+                  <CheckSquare className="w-4 h-4 text-orange-500" />
+                ) : (
+                  <Square className="w-4 h-4" />
+                )}
+              </button>
+            )}
+            
+            {/* Delete Selected Button */}
+            {selectedItems.length > 0 && (
+              <button
+                onClick={deleteSelectedItems}
+                className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors duration-200 text-red-400 hover:text-red-300"
+                aria-label="Delete selected items"
+                title={`Delete ${selectedItems.length} selected item(s)`}
+              >
+                <TrashIcon className="w-4 h-4" />
+                <span className="ml-1 text-[10px] font-semibold">{selectedItems.length}</span>
+              </button>
+            )}
+
+            {/* Clear All Button */}
+            {cart.length > 0 && (
+              <button
+                onClick={handleClearCart}
+                className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-200 text-zinc-400 hover:text-red-400"
+                aria-label="Clear all items"
+                title="Clear all items"
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+            
+            <button
+              onClick={handleClose}
+              className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors duration-200"
+              aria-label="Close cart"
+            >
+              <X className="w-4 h-4 text-zinc-400 hover:text-white transition-colors" />
+            </button>
+          </div>
         </div>
 
         {/* Cart Items */}
@@ -117,70 +225,123 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </Link>
             </div>
           ) : (
-            cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 rounded-xl bg-zinc-900/60 border border-zinc-800/50 p-3 hover:border-orange-500/20 transition-all group"
-              >
-                {/* Image */}
-                <div className="relative h-12 w-12 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-800">
-                  {item.image ? (
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-zinc-500">
-                      <Utensils size={16} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold text-white text-sm truncate group-hover:text-orange-400 transition-colors">
-                    {item.name}
-                  </h3>
-                  <p className="text-sm font-bold text-orange-500">
-                    {formatCurrency(item.price)}
-                  </p>
-                </div>
-
-                {/* Quantity Controls */}
-                <div className="flex items-center gap-0.5 bg-zinc-800/50 rounded-lg p-0.5">
-                  <button
-                    onClick={() => decreaseQuantity(item.id)}
-                    className="p-1 rounded-md hover:bg-zinc-700 transition-colors active:scale-95"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="w-3 h-3 text-zinc-400 hover:text-white transition-colors" />
-                  </button>
-                  <span className="w-6 text-center font-bold text-white text-xs">
-                    {item.quantity}
-                  </span>
-                  <button
-                    onClick={() => increaseQuantity(item.id)}
-                    className="p-1 rounded-md hover:bg-zinc-700 transition-colors active:scale-95"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="w-3 h-3 text-zinc-400 hover:text-white transition-colors" />
-                  </button>
-                </div>
-
-                {/* Remove Button */}
-                <button
-                  onClick={() => removeFromCart(item.id)}
-                  className="p-1 rounded-md hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100 active:scale-95"
-                  aria-label="Remove item"
+            cart.map((item) => {
+              const isSelected = selectedItems.includes(item.id);
+              
+              return (
+                <div
+                  key={item.id}
+                  className={`flex items-center gap-3 rounded-xl border p-3 transition-all group ${
+                    isSelected 
+                      ? 'bg-orange-500/10 border-orange-500/40' 
+                      : 'bg-zinc-900/60 border-zinc-800/50 hover:border-orange-500/20'
+                  }`}
                 >
-                  <Trash2 className="w-3.5 h-3.5 text-red-400 hover:text-red-300 transition-colors" />
-                </button>
-              </div>
-            ))
+                  {/* Selection Checkbox */}
+                  <button
+                    onClick={() => toggleItemSelection(item.id)}
+                    className="flex-shrink-0 p-0.5 rounded hover:bg-zinc-800/50 transition-colors"
+                  >
+                    {isSelected ? (
+                      <CheckSquare className="w-4 h-4 text-orange-500" />
+                    ) : (
+                      <Square className="w-4 h-4 text-zinc-500" />
+                    )}
+                  </button>
+
+                  {/* Image */}
+                  <div className="relative h-12 w-12 flex-shrink-0 rounded-lg overflow-hidden bg-zinc-800">
+                    {item.image ? (
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-zinc-500">
+                        <Utensils size={16} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-white text-sm truncate group-hover:text-orange-400 transition-colors">
+                      {item.name}
+                    </h3>
+                    <p className="text-sm font-bold text-orange-500">
+                      {formatCurrency(item.price)}
+                    </p>
+                  </div>
+
+                  {/* Quantity Controls */}
+                  <div className="flex items-center gap-0.5 bg-zinc-800/50 rounded-lg p-0.5">
+                    <button
+                      onClick={() => decreaseQuantity(item.id)}
+                      className="p-1 rounded-md hover:bg-zinc-700 transition-colors active:scale-95"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="w-3 h-3 text-zinc-400 hover:text-white transition-colors" />
+                    </button>
+                    <span className="w-6 text-center font-bold text-white text-xs">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => increaseQuantity(item.id)}
+                      className="p-1 rounded-md hover:bg-zinc-700 transition-colors active:scale-95"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="w-3 h-3 text-zinc-400 hover:text-white transition-colors" />
+                    </button>
+                  </div>
+
+                  {/* Always Visible Delete Button */}
+                  <button
+                    onClick={() => {
+                      removeFromCart(item.id);
+                      setSelectedItems(prev => prev.filter(id => id !== item.id));
+                    }}
+                    className="p-1 rounded-md hover:bg-red-500/10 transition-all duration-200 active:scale-95 text-red-400 hover:text-red-300"
+                    aria-label="Remove item"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
+
+        {/* Selection Summary */}
+        {selectedItems.length > 0 && (
+          <div className="border-t border-orange-500/20 px-5 py-3 bg-orange-500/5">
+            <div className="flex items-center justify-between text-sm">
+              <div>
+                <span className="text-zinc-400">
+                  {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
+                </span>
+                <span className="text-orange-500 ml-2 font-semibold">
+                  {formatCurrency(selectedTotal)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setSelectedItems([])}
+                  className="text-xs text-zinc-500 hover:text-white transition-colors"
+                >
+                  Clear Selection
+                </button>
+                <button
+                  onClick={deleteSelectedItems}
+                  className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 px-3 py-1 rounded-lg transition-colors"
+                >
+                  Delete Selected
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         {cart.length > 0 && (
@@ -210,17 +371,48 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <p className="text-xl font-black text-white">{formatCurrency(totalAmount)}</p>
               </div>
               <Link
-                href="/checkout"
+                href="/place-order"
                 onClick={handleClose}
                 className="flex items-center gap-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 px-4 py-2.5 rounded-lg font-bold text-sm text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-orange-500/25"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                Checkout
+                Place Order
               </Link>
             </div>
           </div>
         )}
       </div>
+
+      {/* Clear Cart Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm">
+          <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-6 max-w-sm w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-full bg-red-500/10">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+              </div>
+              <h3 className="text-lg font-bold text-white">Clear All Items?</h3>
+            </div>
+            <p className="text-sm text-zinc-400 mb-6">
+              This will remove all items from your cart. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowClearConfirm(false)}
+                className="flex-1 px-4 py-2 rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmClearCart}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors text-sm font-medium"
+              >
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
