@@ -1,6 +1,16 @@
-// @ts-ignore: Allow side-effect import of CSS without type declarations
+// app/layout.tsx
+'use client';
+
+// @ts-ignore
 import './globals.css';
 import { CartProvider } from '@/context/CartContext';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export default function RootLayout({
   children,
@@ -8,9 +18,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body>
-        <CartProvider>{children}</CartProvider>
+    <html lang="en" className={inter.variable}>
+      <body className="bg-black text-white antialiased">
+        <CartProvider>
+          {children}
+        </CartProvider>
       </body>
     </html>
   );

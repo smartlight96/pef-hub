@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { formatCurrency } from '@/lib/currency';
-import { sendWhatsAppOrder } from '@/lib/whatsapp';
+import { generateWhatsAppMessage } from '@/lib/whatsapp';
 import { 
   UploadCloud, 
   CheckCircle2, 
@@ -24,12 +24,14 @@ import {
   Minus,
   Plus,
   Trash2,
-  Utensils
+  Utensils,
+  MessageCircle
 } from 'lucide-react';
 import Image from 'next/image';
 
 export default function CheckoutForm() {
   const { cart, totalAmount, increaseQuantity, decreaseQuantity, removeFromCart } = useCart();
+  
   const [customerInfo, setCustomerInfo] = useState({
     name: '',
     phone: '',
@@ -96,6 +98,7 @@ export default function CheckoutForm() {
   };
 
   const handleSubmitOrder = async () => {
+    // Validate form
     if (!validateForm()) {
       const firstError = document.querySelector('.border-red-500');
       if (firstError) {
@@ -104,23 +107,52 @@ export default function CheckoutForm() {
       return;
     }
 
+    // Check if cart is empty
     if (cart.length === 0) {
-      alert('Your cart is empty');
+      alert('Your cart is empty. Please add items before ordering.');
       return;
     }
 
     setIsSubmitting(true);
+    
     try {
-      await sendWhatsAppOrder(customerInfo, cart, totalAmount);
+      // Generate the WhatsApp message
+      const message = generateWhatsAppMessage(customerInfo, cart, totalAmount);
+      const encodedMessage = encodeURIComponent(message);
+      
+      // WhatsApp contact
+      const phoneNumber = '2348037925030';
+      const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+      
+      console.log('📱 Opening WhatsApp...');
+      console.log('Message preview:', message.substring(0, 200) + '...');
+      
+      // Open WhatsApp in new tab
+      const newWindow = window.open(whatsappUrl, '_blank');
+      
+      // If popup blocked, try alternative
+      if (!newWindow || newWindow.closed) {
+        console.log('Popup blocked, opening in same tab...');
+        window.location.href = whatsappUrl;
+      }
+      
+      // Show instruction after opening WhatsApp
+      setTimeout(() => {
+        alert(
+          '📱 WhatsApp Opened!\n\n' +
+          'Please review your order and click SEND on WhatsApp.\n\n' +
+          'Your order will only be confirmed once you send the message.'
+        );
+      }, 1500);
+      
     } catch (error) {
-      console.error(error);
-      alert('Failed to send order. Please try again.');
+      console.error('Error opening WhatsApp:', error);
+      alert('❌ Failed to open WhatsApp. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Format for display
   const subtotal = totalAmount;
   const deliveryFee = 0;
   const total = subtotal + deliveryFee;
@@ -287,7 +319,7 @@ export default function CheckoutForm() {
         </div>
       </div>
 
-      {/* Right Column - Order Summary (2/5) - STICKY */}
+      {/* Right Column - Order Summary (2/5) */}
       <div className="lg:col-span-2">
         <div className="sticky top-24">
           <div className="bg-gradient-to-br from-zinc-900/80 to-zinc-950/80 rounded-2xl border border-zinc-800/60 p-6 shadow-2xl shadow-black/20">
@@ -311,14 +343,12 @@ export default function CheckoutForm() {
               </div>
             ) : (
               <>
-                {/* Cart Items - Modern List */}
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
                   {cart.map((item) => (
                     <div
                       key={item.id}
                       className="flex items-center gap-2 p-2 bg-zinc-950/50 rounded-xl border border-zinc-800/30 hover:border-orange-500/20 transition-all group"
                     >
-                      {/* Image */}
                       <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-zinc-800">
                         {item.image ? (
                           <Image
@@ -334,7 +364,6 @@ export default function CheckoutForm() {
                         )}
                       </div>
 
-                      {/* Info */}
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-white truncate">{item.name}</p>
                         <p className="text-xs font-bold text-orange-500">
@@ -342,11 +371,10 @@ export default function CheckoutForm() {
                         </p>
                       </div>
 
-                      {/* Quantity */}
                       <div className="flex items-center gap-0.5 bg-zinc-800/50 rounded-lg p-0.5">
                         <button
                           onClick={() => decreaseQuantity(item.id)}
-                          className="w-5 h-5 rounded hover:bg-zinc-700 flex items-center justify-center transition-colors"
+                          className="w-5 h-5 rounded hover:bg-zinc-700 flex items-center justify-center transition-colors active:scale-95"
                         >
                           <Minus className="w-2.5 h-2.5 text-zinc-400" />
                         </button>
@@ -355,24 +383,27 @@ export default function CheckoutForm() {
                         </span>
                         <button
                           onClick={() => increaseQuantity(item.id)}
-                          className="w-5 h-5 rounded hover:bg-zinc-700 flex items-center justify-center transition-colors"
+                          className="w-5 h-5 rounded hover:bg-zinc-700 flex items-center justify-center transition-colors active:scale-95"
                         >
                           <Plus className="w-2.5 h-2.5 text-zinc-400" />
                         </button>
                       </div>
 
-                      {/* Remove */}
                       <button
-                        onClick={() => removeFromCart(item.id)}
-                        className="w-5 h-5 rounded hover:bg-red-500/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => {
+                          if (confirm(`Remove "${item.name}" from your cart?`)) {
+                            removeFromCart(item.id);
+                          }
+                        }}
+                        className="w-5 h-5 rounded hover:bg-red-500/20 flex items-center justify-center transition-colors text-red-400 hover:text-red-300"
+                        aria-label="Remove item"
                       >
-                        <Trash2 className="w-3 h-3 text-red-400" />
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
                   ))}
                 </div>
 
-                {/* Totals */}
                 <div className="mt-4 pt-4 border-t border-zinc-800/60 space-y-2">
                   <div className="flex justify-between text-xs">
                     <span className="text-zinc-400">Subtotal</span>
@@ -388,7 +419,6 @@ export default function CheckoutForm() {
                   </div>
                 </div>
 
-                {/* Checkout Button */}
                 <button
                   onClick={handleSubmitOrder}
                   disabled={isSubmitting}
@@ -397,17 +427,16 @@ export default function CheckoutForm() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing...
+                      Opening WhatsApp...
                     </>
                   ) : (
                     <>
-                      <Send className="w-4 h-4" />
-                      Place Order
+                      <MessageCircle className="w-4 h-4" />
+                      Send via WhatsApp
                     </>
                   )}
                 </button>
 
-                {/* Trust Badges */}
                 <div className="flex items-center justify-center gap-3 mt-3 text-[10px] text-zinc-500">
                   <span className="flex items-center gap-1">
                     <Shield className="w-3 h-3 text-green-500" />
@@ -423,6 +452,13 @@ export default function CheckoutForm() {
                     <Clock className="w-3 h-3 text-orange-500" />
                     On Time
                   </span>
+                </div>
+
+                {/* Important Note */}
+                <div className="mt-3 p-2 rounded-lg bg-orange-500/5 border border-orange-500/10 text-center">
+                  <p className="text-[10px] text-zinc-400">
+                    ⚠️ Your order is only processed after payment is confirmed please attach transaction receipt to the message
+                  </p>
                 </div>
               </>
             )}

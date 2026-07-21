@@ -51,7 +51,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     } else {
       setIsVisible(false);
       document.body.style.overflow = 'unset';
-      setSelectedItems([]); // Clear selection when closing
+      setSelectedItems([]);
     }
     return () => {
       document.body.style.overflow = 'unset';
@@ -74,7 +74,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     setSelectedItems([]);
   };
 
-  // Toggle selection for a single item
   const toggleItemSelection = (itemId: number) => {
     setSelectedItems(prev =>
       prev.includes(itemId)
@@ -83,7 +82,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     );
   };
 
-  // Select all items
   const selectAllItems = () => {
     if (selectedItems.length === cart.length) {
       setSelectedItems([]);
@@ -92,33 +90,22 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     }
   };
 
-  // Delete selected items
   const deleteSelectedItems = () => {
     if (selectedItems.length === 0) return;
     
-    // Show confirmation for multiple items
     if (selectedItems.length > 1) {
       if (confirm(`Remove ${selectedItems.length} items from cart?`)) {
         selectedItems.forEach(id => removeFromCart(id));
         setSelectedItems([]);
       }
     } else {
-      // For single item, just remove it
       selectedItems.forEach(id => removeFromCart(id));
       setSelectedItems([]);
     }
   };
 
-  // Calculate selected total
-  const getSelectedTotal = () => {
-    return cart
-      .filter(item => selectedItems.includes(item.id))
-      .reduce((total, item) => total + (item.price * item.quantity), 0);
-  };
-
   const isAllSelected = cart.length > 0 && selectedItems.length === cart.length;
   const selectedCount = selectedItems.length;
-  const selectedTotal = getSelectedTotal();
 
   if (!isOpen && !isVisible) return null;
 
@@ -155,13 +142,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             </div>
           </div>
           <div className="flex items-center gap-1.5">
-            {/* Select All Button */}
             {cart.length > 0 && (
               <button
                 onClick={selectAllItems}
                 className="p-1.5 rounded-lg hover:bg-zinc-800 transition-colors duration-200 text-zinc-400 hover:text-white"
                 aria-label={isAllSelected ? "Deselect all" : "Select all"}
-                title={isAllSelected ? "Deselect all" : "Select all"}
               >
                 {isAllSelected ? (
                   <CheckSquare className="w-4 h-4 text-orange-500" />
@@ -171,26 +156,22 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               </button>
             )}
             
-            {/* Delete Selected Button */}
             {selectedItems.length > 0 && (
               <button
                 onClick={deleteSelectedItems}
                 className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-colors duration-200 text-red-400 hover:text-red-300"
                 aria-label="Delete selected items"
-                title={`Delete ${selectedItems.length} selected item(s)`}
               >
                 <TrashIcon className="w-4 h-4" />
                 <span className="ml-1 text-[10px] font-semibold">{selectedItems.length}</span>
               </button>
             )}
 
-            {/* Clear All Button */}
             {cart.length > 0 && (
               <button
                 onClick={handleClearCart}
                 className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors duration-200 text-zinc-400 hover:text-red-400"
                 aria-label="Clear all items"
-                title="Clear all items"
               >
                 <Trash2 size={15} />
               </button>
@@ -280,7 +261,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <button
                       onClick={() => decreaseQuantity(item.id)}
                       className="p-1 rounded-md hover:bg-zinc-700 transition-colors active:scale-95"
-                      aria-label="Decrease quantity"
                     >
                       <Minus className="w-3 h-3 text-zinc-400 hover:text-white transition-colors" />
                     </button>
@@ -290,13 +270,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     <button
                       onClick={() => increaseQuantity(item.id)}
                       className="p-1 rounded-md hover:bg-zinc-700 transition-colors active:scale-95"
-                      aria-label="Increase quantity"
                     >
                       <Plus className="w-3 h-3 text-zinc-400 hover:text-white transition-colors" />
                     </button>
                   </div>
 
-                  {/* Always Visible Delete Button */}
+                  {/* Remove Button */}
                   <button
                     onClick={() => {
                       removeFromCart(item.id);
@@ -320,9 +299,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               <div>
                 <span className="text-zinc-400">
                   {selectedItems.length} item{selectedItems.length > 1 ? 's' : ''} selected
-                </span>
-                <span className="text-orange-500 ml-2 font-semibold">
-                  {formatCurrency(selectedTotal)}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -371,12 +347,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <p className="text-xl font-black text-white">{formatCurrency(totalAmount)}</p>
               </div>
               <Link
-                href="/place-order"
+                href="/checkout"
                 onClick={handleClose}
                 className="flex items-center gap-1.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 px-4 py-2.5 rounded-lg font-bold text-sm text-white transition-all hover:scale-105 active:scale-95 shadow-lg shadow-orange-500/25"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                Place Order
+                Checkout
               </Link>
             </div>
           </div>
