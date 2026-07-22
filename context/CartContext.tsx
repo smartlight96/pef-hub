@@ -27,7 +27,7 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Helper functions - these will only be called on client side
+// Helper functions with window check
 const saveCartToStorage = (cart: CartItem[]) => {
   try {
     if (typeof window !== 'undefined') {
@@ -66,8 +66,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Load cart only after mount (client-side)
   useEffect(() => {
     setIsMounted(true);
-    const savedCart = loadCartFromStorage();
-    setCart(savedCart);
+    setCart(loadCartFromStorage());
   }, []);
 
   // Save cart whenever it changes (only after mounted)
@@ -154,16 +153,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     isInCart,
     getItemQuantity,
   };
-
-  // Return children directly on server (no cart data yet)
-  // This prevents hydration mismatches
-  if (!isMounted) {
-    return (
-      <CartContext.Provider value={value}>
-        {children}
-      </CartContext.Provider>
-    );
-  }
 
   return (
     <CartContext.Provider value={value}>

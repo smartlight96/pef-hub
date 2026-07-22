@@ -41,8 +41,14 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   } = useCart();
   
   const [isVisible, setIsVisible] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [selectedItems, setSelectedItems] = useState<number[]>([]);
+
+  // Set mounted state
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -57,6 +63,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+
+  // Don't render until mounted
+  if (!isMounted) {
+    return null;
+  }
 
   const handleClose = () => {
     setIsVisible(false);

@@ -88,7 +88,7 @@ export default function Navbar() {
                 PEF <span className="text-orange-500 group-hover:text-white">HUB</span>
               </span>
               <span className="hidden sm:block text-[8px] sm:text-[10px] font-medium tracking-wider text-zinc-400 uppercase">
-                Pearl & Earl Fast Food
+                PRICELESS AND ELEGANT FOOD HUB
               </span>
             </div>
           </Link>
